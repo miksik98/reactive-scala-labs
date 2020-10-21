@@ -1,1 +1,2 @@
 # reactive-lab
+Mikołaj Sikora
