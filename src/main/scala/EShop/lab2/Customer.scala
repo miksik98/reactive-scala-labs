@@ -23,7 +23,7 @@ class Customer extends Actor {
 
   import Customer._
 
-  val cart: ActorRef = context.actorOf(CartActor.props(self))
+  val cart: ActorRef = context.actorOf(CartActor.props(Some(self)))
   private val log    = Logging(context.system, this)
 
   def receive: Receive = LoggingReceive {

@@ -22,17 +22,17 @@ object CartActor {
   sealed trait Event
   case class CheckoutStarted(checkoutRef: ActorRef) extends Event
 
-  def props(customer: ActorRef = ActorRef.noSender) = Props(new CartActor(customer))
+  def props(customer: Option[ActorRef] = None) = Props(new CartActor(customer))
 }
 
-class CartActor(customer: ActorRef = ActorRef.noSender) extends Actor {
+class CartActor(customer: Option[ActorRef] = None) extends Actor {
 
   import CartActor._
 
   private val log       = Logging(context.system, this)
   val cartTimerDuration = 5 seconds
 
-  var checkout = context.actorOf(Checkout.props(self, customer))
+  var checkout = context.actorOf(Checkout.props(Some(self), customer))
 
   private def scheduleTimer: Cancellable =
     context.system.scheduler.scheduleOnce(cartTimerDuration, self, ExpireCart)
@@ -66,7 +66,7 @@ class CartActor(customer: ActorRef = ActorRef.noSender) extends Actor {
       context become empty
     case StartCheckout =>
       timer.cancel()
-      if (customer != ActorRef.noSender) {
+      if (customer.isDefined) {
         checkout ! Checkout.StartCheckout
       }
       context become inCheckout(cart)
