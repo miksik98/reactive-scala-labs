@@ -1,6 +1,8 @@
 package EShop.lab2
 
 import EShop.lab2.Checkout.CancelCheckout
+import EShop.lab3.OrderManager
+import EShop.lab3.OrderManager.ConfirmCheckoutStarted
 import akka.actor.{Actor, ActorRef, Cancellable, Props}
 import akka.event.{Logging, LoggingReceive}
 
@@ -36,16 +38,14 @@ class CartActor() extends Actor {
   private def scheduleTimer: Cancellable =
     context.system.scheduler.scheduleOnce(cartTimerDuration, self, ExpireCart)
 
-  def receive: Receive = LoggingReceive {
-    case AddItem(item) =>
-      val cart = Cart.empty
-      context become nonEmpty(cart.addItem(item), scheduleTimer)
-  }
+  def receive: Receive = empty
 
   def empty: Receive = LoggingReceive {
     case AddItem(item) =>
       val cart = Cart.empty
       context become nonEmpty(cart.addItem(item), scheduleTimer)
+    case GetItems =>
+      sender ! Cart.empty.items
   }
 
   def nonEmpty(cart: Cart, timer: Cancellable): Receive = LoggingReceive {
@@ -65,7 +65,12 @@ class CartActor() extends Actor {
       context become empty
     case StartCheckout =>
       timer.cancel()
+      var checkout = context.actorOf(Checkout.props(self))
+      checkout ! Checkout.StartCheckout
+      sender ! ConfirmCheckoutStarted(checkout)
       context become inCheckout(cart)
+    case GetItems =>
+      sender ! cart.items
   }
 
   def inCheckout(cart: Cart): Receive = LoggingReceive {
@@ -73,6 +78,8 @@ class CartActor() extends Actor {
       context become empty
     case ConfirmCheckoutCancelled =>
       context become nonEmpty(cart, scheduleTimer)
+    case GetItems =>
+      sender ! cart.items
   }
 
 }

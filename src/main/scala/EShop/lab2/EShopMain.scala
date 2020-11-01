@@ -3,7 +3,6 @@ package EShop.lab2
 import akka.actor.{ActorSystem, PoisonPill, Props}
 import CartActor._
 import Checkout._
-import EShop.lab2.Customer.Init
 
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration

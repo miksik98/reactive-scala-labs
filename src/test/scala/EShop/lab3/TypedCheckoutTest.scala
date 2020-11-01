@@ -19,8 +19,6 @@ class TypedCheckoutTest
   override def afterAll: Unit =
     testKit.shutdownTestKit()
 
-  it should "Send close confirmation to cart" in {
-    ???
-  }
+  it should "Send close confirmation to cart" in {}
 
 }
