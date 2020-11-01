@@ -25,6 +25,7 @@ class Payment(
     case DoPayment =>
       orderManager ! OrderManager.ConfirmPaymentReceived
       checkout ! Checkout.ConfirmPaymentReceived
+      context stop self
   }
 
 }

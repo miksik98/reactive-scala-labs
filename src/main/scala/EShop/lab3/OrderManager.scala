@@ -79,6 +79,9 @@ class OrderManager extends Actor {
   }
 
   def finished: Receive = LoggingReceive {
-    case _ => sender ! "order manager finished job"
+    case _ => {
+      sender ! "order manager finished job"
+      context stop self
+    }
   }
 }
