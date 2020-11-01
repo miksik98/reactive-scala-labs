@@ -23,20 +23,20 @@ class Customer extends Actor {
 
   import Customer._
 
-  val cart: ActorRef = context.actorOf(CartActor.props(Some(self)))
-  private val log    = Logging(context.system, this)
+//  val cart: ActorRef = context.actorOf(CartActor.props(Some(self)))
+  private val log = Logging(context.system, this)
 
   def receive: Receive = LoggingReceive {
 
     case Init =>
-      cart ! AddItem("CD")
-      cart ! AddItem("book")
-      cart ! AddItem("DVD")
-      cart ! AddItem("phone")
-      cart ! RemoveItem("DVD")
-      cart ! RemoveItem("DVD")
-
-      cart ! StartCheckout
+//      cart ! AddItem("CD")
+//      cart ! AddItem("book")
+//      cart ! AddItem("DVD")
+//      cart ! AddItem("phone")
+//      cart ! RemoveItem("DVD")
+//      cart ! RemoveItem("DVD")
+//
+//      cart ! StartCheckout
 
     case CheckoutStarted(checkout: ActorRef) =>
       checkout ! SelectDeliveryMethod("inpost")

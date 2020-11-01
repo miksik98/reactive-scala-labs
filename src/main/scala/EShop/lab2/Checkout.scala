@@ -29,10 +29,12 @@ object Checkout {
   case object CheckOutClosed                   extends Event
   case class PaymentStarted(payment: ActorRef) extends Event
 
-  def props(cart: Option[ActorRef] = None, customer: Option[ActorRef] = None) = Props(new Checkout(cart, customer))
+  def props(cart: ActorRef) = Props(new Checkout(cart))
 }
 
-class Checkout(cart: Option[ActorRef] = None, customer: Option[ActorRef] = None) extends Actor {
+class Checkout(
+  cartActor: ActorRef
+) extends Actor {
 
   private val scheduler = context.system.scheduler
   private val log       = Logging(context.system, this)
@@ -42,15 +44,11 @@ class Checkout(cart: Option[ActorRef] = None, customer: Option[ActorRef] = None)
 
   def receive: Receive = LoggingReceive {
     case StartCheckout =>
-      if (customer.isDefined)
-        customer.get ! CheckoutStarted(self)
       context become selectingDelivery(scheduler.scheduleOnce(checkoutTimerDuration, self, ExpireCheckout))
   }
 
   def selectingDelivery(timer: Cancellable): Receive = LoggingReceive {
     case SelectDeliveryMethod(_) =>
-      if (customer.isDefined)
-        customer.get ! SelectingDeliveryStarted(timer)
       context become selectingPaymentMethod(timer)
     case CancelCheckout =>
       timer.cancel()
@@ -59,10 +57,9 @@ class Checkout(cart: Option[ActorRef] = None, customer: Option[ActorRef] = None)
       context become cancelled
   }
 
-  def selectingPaymentMethod(timer: Cancellable): Receive = LoggingReceive {    case SelectPayment(_) =>
+  def selectingPaymentMethod(timer: Cancellable): Receive = LoggingReceive {
+    case SelectPayment(_) =>
       timer.cancel()
-      if (customer.isDefined)
-        customer.get ! PaymentStarted(self)
       context become processingPayment(scheduler.scheduleOnce(paymentTimerDuration, self, ExpirePayment))
     case CancelCheckout =>
       timer.cancel()
@@ -74,11 +71,7 @@ class Checkout(cart: Option[ActorRef] = None, customer: Option[ActorRef] = None)
   def processingPayment(timer: Cancellable): Receive = LoggingReceive {
     case ConfirmPaymentReceived =>
       timer.cancel()
-      if (customer.isDefined) {
-        customer.get ! ProcessingPaymentStarted(timer)
-        customer.get ! CheckOutClosed
-        cart.get ! CheckOutClosed
-      }
+      cartActor ! CheckOutClosed
       context become closed
     case CancelCheckout =>
       timer.cancel()
@@ -89,18 +82,12 @@ class Checkout(cart: Option[ActorRef] = None, customer: Option[ActorRef] = None)
 
   def cancelled: Receive = LoggingReceive {
     case _ => {
-      if (customer.isDefined) {
-        customer.get ! Uninitialized
-      }
       context stop self
     }
   }
 
   def closed: Receive = LoggingReceive {
     case _ => {
-      if (customer.isDefined) {
-        customer.get ! Uninitialized
-      }
       context stop self
     }
   }
