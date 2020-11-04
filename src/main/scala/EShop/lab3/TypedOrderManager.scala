@@ -1,6 +1,9 @@
 package EShop.lab3
 
+import EShop.lab2.TypedCartActor.StartCheckout
+import EShop.lab2.TypedCheckout.{SelectDeliveryMethod, SelectPayment}
 import EShop.lab2.{TypedCartActor, TypedCheckout}
+import EShop.lab3.TypedPayment.DoPayment
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ActorRef, Behavior}
 
@@ -24,25 +27,91 @@ class TypedOrderManager {
 
   import TypedOrderManager._
 
-  def start: Behavior[TypedOrderManager.Command] = ???
+  def start: Behavior[TypedOrderManager.Command] = uninitialized
 
-  def uninitialized: Behavior[TypedOrderManager.Command] = ???
+  def uninitialized: Behavior[TypedOrderManager.Command] = Behaviors.receive(
+    (context, msg) =>
+      msg match {
+        case AddItem(id, sender) =>
+          val cartActor = context.spawn(new TypedCartActor().start, "TypedCart")
+          cartActor ! TypedCartActor.AddItem(id)
+          sender ! Done
+          open(cartActor)
+    }
+  )
 
-  def open(cartActor: ActorRef[TypedCartActor.Command]): Behavior[TypedOrderManager.Command] = ???
+  def open(cartActor: ActorRef[TypedCartActor.Command]): Behavior[TypedOrderManager.Command] = Behaviors.receive(
+    (context, msg) =>
+      msg match {
+        case AddItem(id, sender) =>
+          cartActor ! TypedCartActor.AddItem(id)
+          sender ! Done
+          Behaviors.same
+        case RemoveItem(id, sender) =>
+          cartActor ! TypedCartActor.RemoveItem(id)
+          sender ! Done
+          Behaviors.same
+        case Buy(sender) =>
+          cartActor ! StartCheckout(context.self)
+          inCheckoutWaitingForConfirmationCheckout(cartActor, sender)
+    }
+  )
 
-  def inCheckout(
+  def inCheckoutWaitingForConfirmationCheckout(
     cartActorRef: ActorRef[TypedCartActor.Command],
     senderRef: ActorRef[Ack]
-  ): Behavior[TypedOrderManager.Command] = ???
+  ): Behavior[TypedOrderManager.Command] = Behaviors.receive(
+    (context, msg) =>
+      msg match {
+        case ConfirmCheckoutStarted(checkoutRef) =>
+          senderRef ! Done
+          inCheckout(checkoutRef)
+    }
+  )
 
-  def inCheckout(checkoutActorRef: ActorRef[TypedCheckout.Command]): Behavior[TypedOrderManager.Command] = ???
+  def inCheckoutWaitingForConfirmationPayment(
+    checkoutActorRef: ActorRef[TypedCheckout.Command],
+    senderRef: ActorRef[Ack]
+  ): Behavior[TypedOrderManager.Command] = Behaviors.receive(
+    (context, msg) =>
+      msg match {
+        case ConfirmPaymentStarted(paymentRef) =>
+          senderRef ! Done
+          inPayment(paymentRef, senderRef)
+    }
+  )
 
-  def inPayment(senderRef: ActorRef[Ack]): Behavior[TypedOrderManager.Command] = ???
+  def inCheckout(checkoutActorRef: ActorRef[TypedCheckout.Command]): Behavior[TypedOrderManager.Command] =
+    Behaviors.receive(
+      (context, msg) =>
+        msg match {
+          case SelectDeliveryAndPaymentMethod(delivery, payment, sender) =>
+            checkoutActorRef ! SelectDeliveryMethod(delivery)
+            checkoutActorRef ! SelectPayment(payment, context.self)
+            inCheckoutWaitingForConfirmationPayment(checkoutActorRef, sender)
+      }
+    )
+
+  def inPayment(senderRef: ActorRef[Ack]): Behavior[TypedOrderManager.Command] = Behaviors.receive(
+    (context, msg) =>
+      msg match {
+        case ConfirmPaymentReceived =>
+          senderRef ! Done
+          finished
+    }
+  )
 
   def inPayment(
     paymentActorRef: ActorRef[TypedPayment.Command],
     senderRef: ActorRef[Ack]
-  ): Behavior[TypedOrderManager.Command] = ???
+  ): Behavior[TypedOrderManager.Command] = Behaviors.receive(
+    (context, msg) =>
+      msg match {
+        case Pay(sender) =>
+          paymentActorRef ! DoPayment
+          inPayment(sender)
+    }
+  )
 
-  def finished: Behavior[TypedOrderManager.Command] = ???
+  def finished: Behavior[TypedOrderManager.Command] = Behaviors.stopped
 }
