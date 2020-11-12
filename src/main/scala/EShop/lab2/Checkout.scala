@@ -1,6 +1,6 @@
 package EShop.lab2
 
-import EShop.lab2.CartActor.{CheckoutStarted, ConfirmCheckoutClosed}
+import EShop.lab2.CartActor.ConfirmCheckoutClosed
 import EShop.lab2.Checkout._
 import EShop.lab3.OrderManager.ConfirmPaymentStarted
 import EShop.lab3.Payment
@@ -13,11 +13,6 @@ import scala.concurrent._
 import ExecutionContext.Implicits.global
 object Checkout {
 
-  sealed trait Data
-  case object Uninitialized                               extends Data
-  case class SelectingDeliveryStarted(timer: Cancellable) extends Data
-  case class ProcessingPaymentStarted(timer: Cancellable) extends Data
-
   sealed trait Command
   case object StartCheckout                       extends Command
   case class SelectDeliveryMethod(method: String) extends Command
@@ -28,8 +23,11 @@ object Checkout {
   case object ConfirmPaymentReceived              extends Command
 
   sealed trait Event
-  case object CheckOutClosed                   extends Event
-  case class PaymentStarted(payment: ActorRef) extends Event
+  case object CheckOutClosed                        extends Event
+  case class PaymentStarted(payment: ActorRef)      extends Event
+  case object CheckoutStarted                       extends Event
+  case object CheckoutCancelled                     extends Event
+  case class DeliveryMethodSelected(method: String) extends Event
 
   def props(cart: ActorRef) = Props(new Checkout(cart))
 }
