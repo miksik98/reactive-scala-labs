@@ -2,7 +2,8 @@ package EShop.lab2
 
 import akka.actor.{ActorSystem, PoisonPill, Props}
 import CartActor._
-import Checkout._
+import Checkout.{StartCheckout, _}
+import EShop.lab4.PersistentCheckout
 
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
@@ -77,9 +78,14 @@ object EShopMain extends App {
 //    actorCheckout ! CancelCheckout
   }
 
-  communicationTest()
-  Thread.sleep(10000)
-  flowTest()
+//  communicationTest()
+//  Thread.sleep(10000)
+//  flowTest()
+
+  val cartActor          = system.actorOf(CartActor.props())
+  val persistentCheckout = system.actorOf(PersistentCheckout.props(cartActor, "example"))
+
+  persistentCheckout ! StartCheckout
 
   Await.result(system.whenTerminated, Duration.Inf)
 }
