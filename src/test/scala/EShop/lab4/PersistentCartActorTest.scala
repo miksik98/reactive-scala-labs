@@ -4,12 +4,14 @@ import EShop.lab2.Cart
 import EShop.lab2.CartActor.{AddItem, ConfirmCheckoutCancelled, ConfirmCheckoutClosed, RemoveItem, StartCheckout}
 import EShop.lab3.OrderManager
 import akka.actor.{ActorRef, ActorSystem, Cancellable, PoisonPill, Props}
-import akka.testkit.{ImplicitSender, TestKit}
+import akka.testkit.{ImplicitSender, TestKit, TestProbe}
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.BeforeAndAfterAll
 
 import scala.concurrent.duration._
 import scala.util.Random
+
+trait RestartActor {}
 
 class PersistentCartActorTest
   extends TestKit(ActorSystem("PersistentCartActorTest"))
@@ -21,6 +23,11 @@ class PersistentCartActorTest
     TestKit.shutdownActorSystem(system)
 
   import PersistentCartActorTest._
+
+  def restartCartActor(activeActor: ActorRef, system: ActorSystem, id: String): ActorRef = {
+    system.stop(activeActor)
+    cartActorWithCartSizeResponseOnStateChange(system, id)
+  }
 
   it should "change state after adding first item to the cart" in {
     val nonEmptyTestMsg = "changedStateToNonEmpty"
@@ -48,41 +55,42 @@ class PersistentCartActorTest
   }
 
   it should "be empty after adding new item and removing it after that" in {
-    val id   = ???
+    val id   = generatePersistenceId
     val cart = cartActorWithCartSizeResponseOnStateChange(system, id)
 
     cart ! AddItem("Storm")
     expectMsg(nonEmptyMsg)
     expectMsg(1)
     //restart actor
-    val cartActorAfterRestart: ActorRef = ???
+    val cartActorAfterRestart: ActorRef = restartCartActor(cart, system, id)
     cartActorAfterRestart ! RemoveItem("Storm")
     expectMsg(emptyMsg)
     expectMsg(0)
   }
 
   it should "contain one item after adding new item and removing not existing one" in {
-    val id: String = ???
+    val id: String = generatePersistenceId
     val cart       = cartActorWithCartSizeResponseOnStateChange(system, id)
 
     cart ! AddItem("Romeo & Juliet")
     expectMsg(nonEmptyMsg)
     expectMsg(1)
     //restart actor
-    val cartActorAfterRestart: ActorRef = ???
+    val cartActorAfterRestart: ActorRef = restartCartActor(cart, system, id)
     cartActorAfterRestart ! RemoveItem("Makbet")
-    expectNoMessage()
+    expectMsg(nonEmptyMsg)
+    expectMsg(1)
   }
 
   it should "change state to inCheckout from nonEmpty" in {
-    val id: String = ???
+    val id: String = generatePersistenceId
     val cart       = cartActorWithCartSizeResponseOnStateChange(system, id)
 
     cart ! AddItem("Romeo & Juliet")
     expectMsg(nonEmptyMsg)
     expectMsg(1)
     //restart actor
-    val cartActorAfterRestart: ActorRef = ???
+    val cartActorAfterRestart: ActorRef = restartCartActor(cart, system, id)
     cartActorAfterRestart ! StartCheckout
     fishForMessage() {
       case m: String if m == inCheckoutMsg        => true
@@ -92,7 +100,7 @@ class PersistentCartActorTest
   }
 
   it should "cancel checkout properly" in {
-    val id: String = ???
+    val id: String = generatePersistenceId
     val cart       = cartActorWithCartSizeResponseOnStateChange(system, id)
 
     cart ! AddItem("Cymbelin")
@@ -105,14 +113,14 @@ class PersistentCartActorTest
     }
     expectMsg(1)
     //restart actor
-    val cartActorAfterRestart: ActorRef = ???
+    val cartActorAfterRestart: ActorRef = restartCartActor(cart, system, id)
     cartActorAfterRestart ! ConfirmCheckoutCancelled
     expectMsg(nonEmptyMsg)
     expectMsg(1)
   }
 
   it should "close checkout properly" in {
-    val id: String = ???
+    val id: String = generatePersistenceId
     val cart       = cartActorWithCartSizeResponseOnStateChange(system, id)
 
     cart ! AddItem("Cymbelin")
@@ -125,14 +133,14 @@ class PersistentCartActorTest
     }
     expectMsg(1)
     //restart actor
-    val cartActorAfterRestart: ActorRef = ???
+    val cartActorAfterRestart: ActorRef = restartCartActor(cart, system, id)
     cartActorAfterRestart ! ConfirmCheckoutClosed
     expectMsg(emptyMsg)
     expectMsg(0)
   }
 
   it should "not add items when in checkout" in {
-    val id: String = ???
+    val id: String = generatePersistenceId
     val cart       = cartActorWithCartSizeResponseOnStateChange(system, id)
 
     cart ! AddItem("Cymbelin")
@@ -145,7 +153,7 @@ class PersistentCartActorTest
     }
     expectMsg(1)
     //restart actor
-    val cartActorAfterRestart: ActorRef = ???
+    val cartActorAfterRestart: ActorRef = restartCartActor(cart, system, id)
     cartActorAfterRestart ! AddItem("Henryk V")
     expectNoMessage
   }
@@ -158,14 +166,14 @@ class PersistentCartActorTest
   }
 
   it should "expire and back to empty state after given time" in {
-    val id: String = ???
+    val id: String = generatePersistenceId
     val cart       = cartActorWithCartSizeResponseOnStateChange(system, id)
 
     cart ! AddItem("King Lear")
     expectMsg(nonEmptyMsg)
     expectMsg(1)
     //restart actor
-    val cartActorAfterRestart: ActorRef = ???
+    val cartActorAfterRestart: ActorRef = restartCartActor(cart, system, id)
     Thread.sleep(1500)
     cartActorAfterRestart ! AddItem("King Lear")
     expectMsg(nonEmptyMsg)

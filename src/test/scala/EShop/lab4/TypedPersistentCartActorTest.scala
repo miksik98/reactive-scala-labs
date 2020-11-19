@@ -5,12 +5,13 @@ import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import akka.persistence.testkit.scaladsl.EventSourcedBehaviorTestKit
 import akka.persistence.typed.PersistenceId
 import org.scalatest.flatspec.AnyFlatSpecLike
-import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
+import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach, Ignore}
 import akka.persistence.testkit.scaladsl.EventSourcedBehaviorTestKit.SerializationSettings
 
 import scala.concurrent.duration._
 import scala.util.Random
 
+@Ignore
 class TypedPersistentCartActorTest
   extends ScalaTestWithActorTestKit(EventSourcedBehaviorTestKit.config)
   with AnyFlatSpecLike

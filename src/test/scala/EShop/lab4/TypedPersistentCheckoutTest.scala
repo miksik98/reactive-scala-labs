@@ -6,12 +6,13 @@ import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import akka.persistence.testkit.scaladsl.EventSourcedBehaviorTestKit
 import akka.persistence.testkit.scaladsl.EventSourcedBehaviorTestKit.SerializationSettings
 import akka.persistence.typed.PersistenceId
-import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
+import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach, Ignore}
 import org.scalatest.flatspec.AnyFlatSpecLike
 
 import scala.concurrent.duration._
 import scala.util.Random
 
+@Ignore
 class TypedPersistentCheckoutTest
   extends ScalaTestWithActorTestKit(EventSourcedBehaviorTestKit.config)
   with AnyFlatSpecLike
