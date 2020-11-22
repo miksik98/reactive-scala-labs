@@ -78,9 +78,11 @@ object ProductCatalogApp extends App {
     config.getConfig("productcatalog").withFallback(config)
   )
 
-  productCatalogSystem.actorOf(
-    ProductCatalog.props(new SearchService()),
-    "productcatalog"
+  ProductCatalogHttpServer.startServer(
+    productCatalogSystem.actorOf(
+      ProductCatalog.props(new SearchService()),
+      "productcatalog"
+    )
   )
 
   Await.result(productCatalogSystem.whenTerminated, Duration.Inf)
