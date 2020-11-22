@@ -18,8 +18,7 @@ object TypedCartActor {
   case class StartCheckout(orderManagerRef: ActorRef[TypedOrderManager.Command]) extends Command
   case object ConfirmCheckoutCancelled                                           extends Command
   case object ConfirmCheckoutClosed                                              extends Command
-
-  case class GetItems(sender: ActorRef[Cart]) extends Command
+  case class GetItems(sender: ActorRef[Cart])                                    extends Command
 
   sealed trait Event
   case class CheckoutStarted(checkoutRef: ActorRef[TypedCheckout.Command]) extends Event

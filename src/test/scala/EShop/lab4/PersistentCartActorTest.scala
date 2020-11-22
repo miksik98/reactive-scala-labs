@@ -11,8 +11,6 @@ import org.scalatest.BeforeAndAfterAll
 import scala.concurrent.duration._
 import scala.util.Random
 
-trait RestartActor {}
-
 class PersistentCartActorTest
   extends TestKit(ActorSystem("PersistentCartActorTest"))
   with AnyFlatSpecLike
