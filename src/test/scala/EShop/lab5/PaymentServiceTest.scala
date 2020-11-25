@@ -47,7 +47,7 @@ class PaymentServiceTest
 
       override def supervisorStrategy: SupervisorStrategy =
         OneForOneStrategy(maxNrOfRetries = 1, withinTimeRange = 1.seconds) {
-          case _: PaymentServerError =>
+          case _: PaymentClientError =>
             failure.ref ! "failed"
             Stop
         }
