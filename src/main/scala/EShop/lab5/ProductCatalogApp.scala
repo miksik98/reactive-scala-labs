@@ -1,10 +1,12 @@
 package EShop.lab5
-import java.net.URI
-import java.util.zip.GZIPInputStream
-
-import akka.actor.{Actor, ActorSystem, Props}
+import EShop.lab6.{CounterOfProductCatalog, CounterOfProductCatalogApp}
+import akka.actor.{Actor, ActorRef, ActorSystem, Props}
+import akka.cluster.pubsub.DistributedPubSub
+import akka.cluster.pubsub.DistributedPubSubMediator.Publish
 import com.typesafe.config.ConfigFactory
 
+import java.net.URI
+import java.util.zip.GZIPInputStream
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
 import scala.io.Source
@@ -51,6 +53,7 @@ object ProductCatalog {
 
   sealed trait Query
   case class GetItems(brand: String, productKeyWords: List[String]) extends Query
+  case class ProductCatalogQuery(name: String, query: String)       extends Query
 
   sealed trait Ack
   case class Items(items: List[Item]) extends Ack
@@ -63,8 +66,11 @@ class ProductCatalog(searchService: SearchService) extends Actor {
 
   import ProductCatalog._
 
+  val mediator: ActorRef = DistributedPubSub(context.system).mediator
+
   override def receive: Receive = {
     case GetItems(brand, productKeyWords) =>
+      mediator ! Publish("query", ProductCatalogQuery(self.toString(), brand + " " + productKeyWords))
       sender() ! Items(searchService.search(brand, productKeyWords))
   }
 }
@@ -86,4 +92,12 @@ object ProductCatalogApp extends App {
   )
 
   Await.result(productCatalogSystem.whenTerminated, Duration.Inf)
+}
+
+object CounterApp extends App {
+  private val config = ConfigFactory.load()
+  val counterSystem  = ActorSystem.create("CounterSystem", config.getConfig("counter").withFallback(config));
+  CounterOfProductCatalogApp.startServer(counterSystem.actorOf(CounterOfProductCatalog.props(Seq("productcatalog"))))
+
+  Await.result(counterSystem.whenTerminated, Duration.Inf)
 }

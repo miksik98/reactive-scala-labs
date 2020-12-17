@@ -3,6 +3,7 @@ package EShop.lab5
 import java.net.URI
 
 import EShop.lab5.ProductCatalog.{GetItems, Item, Items}
+import EShop.lab6.CounterOfProductCatalog.CounterSpecificInfo
 import akka.actor.ActorRef
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.model.StatusCodes
@@ -58,7 +59,6 @@ trait JsonItemSupport extends SprayJsonSupport with DefaultJsonProtocol {
       case _ => throw new RuntimeException("Parsing exception")
     }
   }
-
 }
 
 class ProductCatalogHttpServer(productCatalog: ActorRef) extends HttpApp with JsonItemSupport {

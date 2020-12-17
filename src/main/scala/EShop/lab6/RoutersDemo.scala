@@ -1,23 +1,10 @@
 package EShop.lab6
 
+import EShop.lab5.ProductCatalog.{GetItems, Items}
+import EShop.lab5.{PaymentService, ProductCatalog, SearchService}
 import akka.actor._
 import akka.event.LoggingReceive
 import akka.routing._
-
-object Worker {
-  case class Work(work: String)
-}
-
-class Worker extends Actor with ActorLogging {
-  import Worker._
-
-  def receive: Receive = LoggingReceive {
-    case Work(a) =>
-      log.info(s"I got to work on $a")
-      context.stop(self)
-  }
-
-}
 
 object Master {
   case class WorkToDistribute(work: String)
@@ -27,7 +14,7 @@ class Master extends Actor with ActorLogging {
   val nbOfRoutees = 5
 
   val routees = Vector.fill(nbOfRoutees) {
-    val r = context.actorOf(Props[Worker])
+    val r = context.actorOf(ProductCatalog.props(new SearchService()))
     context watch r // we subscribe for akka.actor.Terminated messages, we want to know when some worker was terminated
     ActorRefRoutee(r)
   }
@@ -35,8 +22,8 @@ class Master extends Actor with ActorLogging {
   def receive: Receive = master(Router(BroadcastRoutingLogic(), routees))
 
   def master(router: Router): Receive = LoggingReceive {
-    case Master.WorkToDistribute(w) =>
-      router.route(Worker.Work(w), sender())
+    case Master.WorkToDistribute(_) =>
+      router.route(GetItems("gerber", List("cream")), sender())
 
     case Terminated(a) => // some worker was terminated
       val r = router.removeRoutee(a)
@@ -57,7 +44,7 @@ class Client extends Actor {
   def receive: Receive = LoggingReceive {
     case Init =>
       val master = context.actorOf(Props(classOf[Master]), "master")
-      master ! Master.WorkToDistribute("some work")
+      master ! Master.WorkToDistribute("Find some product")
   }
 }
 
@@ -75,9 +62,8 @@ object SimpleRouterDemo extends App {
 
   val system = ActorSystem("ReactiveRouters")
 
-  val workers = system.actorOf(BroadcastPool(5).props(Props[Worker]), "workersRouter")
+  val workers =
+    system.actorOf(BroadcastPool(5).props(ProductCatalog.props(new SearchService())), "ProductCatalogRouters")
 
-  workers ! Worker.Work("some work")
-  //workers ! Worker.Work("some work 2")
-
+  workers ! GetItems("gerber", List("cream"))
 }

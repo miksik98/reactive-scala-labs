@@ -35,6 +35,7 @@ libraryDependencies ++= Seq(
   "ch.qos.logback"            % "logback-classic"            % "1.2.3"
 )
 
+libraryDependencies += "com.typesafe.akka"     %% "akka-cluster-tools"       % "2.5.32"
 libraryDependencies += "io.gatling.highcharts" % "gatling-charts-highcharts" % "3.2.1" % "test,it"
 libraryDependencies += "io.gatling"            % "gatling-test-framework"    % "3.2.1" % "test,it"
 
